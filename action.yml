@@ -78,7 +78,7 @@ runs:
         curseforge-version: ""
         version-type: release
         loaders: neoforge
-        files: ./dist/*-neoforge-*jar
+        files: "${{ github.action_path }}/dist/*-neoforge-*jar"
         changelog: "${{ inputs.changelog }}"
         game-versions: ${{ inputs.version-range }}
         game-version-filter: releases
@@ -99,7 +99,7 @@ runs:
         curseforge-version: ""
         version-type: release
         loaders: fabric
-        files: ./dist/*-fabric-*jar
+        files: "${{ github.action_path }}/dist/*-fabric-*jar"
         changelog: "${{ inputs.changelog }}"
         game-versions: ${{ inputs.version-range }}
         dependencies: fabric-api(required)
@@ -121,7 +121,7 @@ runs:
         curseforge-version: ""
         version-type: release
         loaders: forge
-        files: ./dist/*-forge-*jar
+        files: "${{ github.action_path }}/dist/*-forge-*jar"
         changelog: "${{ inputs.changelog }}"
         game-versions: ${{ inputs.version-range }}
         game-version-filter: releases
