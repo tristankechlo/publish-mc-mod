@@ -63,7 +63,7 @@ runs:
   using: "composite"
   steps:
     - name: publish NeoForge
-      if: ${{ inputs.neoforge == true }}
+      if: ${{ inputs.neoforge == true || inputs.neoforge == 'true' }}
       uses: Kir-Antipov/mc-publish@v3.3
       with:
         modrinth-id: ${{ inputs.modrinth-id }}
@@ -84,7 +84,7 @@ runs:
         game-version-filter: releases
 
     - name: publish Fabric
-      if: ${{ inputs.fabric == true }}
+      if: ${{ inputs.fabric == true || inputs.fabric == 'true' }}
       uses: Kir-Antipov/mc-publish@v3.3
       with:
         modrinth-id: ${{ inputs.modrinth-id }}
@@ -106,7 +106,7 @@ runs:
         game-version-filter: releases
 
     - name: publish Forge
-      if: ${{ inputs.forge == true }}
+      if: ${{ inputs.forge == true || inputs.forge == 'true' }}
       uses: Kir-Antipov/mc-publish@v3.3
       with:
         modrinth-id: ${{ inputs.modrinth-id }}
