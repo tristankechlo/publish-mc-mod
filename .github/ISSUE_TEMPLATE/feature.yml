@@ -1,0 +1,24 @@
+name: Feature Request
+description: Propose a new feature for this action
+title: "[Feature]: "
+labels: ["feature request"]
+assignees:
+  - tristankechlo
+body:
+  - type: markdown
+    attributes:
+      value: Thank you for taking the time to fill out this form!
+  - type: textarea
+    id: idea
+    attributes:
+      label: What's your idea?
+      description: A detailed description of the idea.
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional infos
+      description: ADd some additional info to the bug/error. If you have any screenshots, you can attach them here.
+    validations:
+      required: false
