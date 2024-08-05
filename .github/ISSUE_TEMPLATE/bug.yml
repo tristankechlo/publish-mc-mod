@@ -1,0 +1,24 @@
+name: Bug Report
+description: Use this to report a bug or an error with this action
+title: "[Bug]: "
+labels: ["bug"]
+assignees:
+  - tristankechlo
+body:
+  - type: markdown
+    attributes:
+      value: Thank you for taking the time to fill out this form!
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: A detailed description of the bug/error.
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional infos
+      description: ADd some additional info to the bug/error. If you have screenshots or logs, you can attach them here.
+    validations:
+      required: false
