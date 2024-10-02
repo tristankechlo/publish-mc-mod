@@ -1,0 +1,27 @@
+{
+  "name": "publish-mc-mod",
+  "description": "Publishes modfiles to CurseForge and Modrinth.",
+  "version": "2.0.0",
+  "author": "tristankechlo",
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "npx ncc build src/index.ts -o dist"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@actions/core": "^1.10.1",
+    "axios": "^1.7.7",
+    "semver": "^7.6.3"
+  },
+  "devDependencies": {
+    "@types/node": "^22.7.2",
+    "@types/semver": "^7.5.8",
+    "@vercel/ncc": "^0.38.2",
+    "typescript": "^5.6.2"
+  }
+}

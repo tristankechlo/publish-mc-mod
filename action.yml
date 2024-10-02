@@ -7,121 +7,95 @@ branding:
   color: 'green'
 
 inputs:
-  mc-version:
+  # general inputs
+  summary:
+    required: false
+    default: false
+    description: when set to true this action will create a summary inside your workflow
+  # minecraft specific inputs
+  minecraft-version:
     required: true
-    type: string
     description: the minecraft version of the build, used for publishing to curseforge and modrinth
   mod-version:
     required: true
-    type: string
     description: the version of the mod, used for publishing to curseforge and modrinth
-  curseforge-id:
-    required: true
-    type: number
-    description: the project id for the mod
-  modrinth-id:
-    required: true
-    type: string
-    description: the project id for the mod
   changelog:
     required: true
-    type: string
     default: ""
-    description: changelog that is added while publishing to curseforge and modrinth, supports markdown
-  featured:
-    required: false
-    type: boolean
-    default: true
-    description: whether or not the file is marked as featured on modrinth, defaults to true
-  forge:
-    required: false
-    type: boolean
-    default: true
-    description: whether or not the build has forge files, defaults to true
-  fabric:
-    required: false
-    type: boolean
-    default: true
-    description: whether or not the build has fabric files, defaults to true
-  neoforge:
-    required: false
-    type: boolean
-    default: true
-    description: whether or not the build has neoforge files, defaults to true
+    description: changelog that is added while publishing to curseforge and modrinth
   version-range:
     required: true
-    type: string
     description: what minecraft versions does this build support, used for curseforge and modrinth
+  version-type:
+    required: true
+    description: the version type - alpha, beta, or release
+  # platform specific inputs
+  curseforge-id:
+    required: false
+    default: ""
+    description: the project id for the mod
   curseforge-token:
+    required: false
+    default: ""
+    description: the token to authorize against the curseforge api
+  curseforge-name:
+    required: false
+    default: ""
+    description: the name of the version
+  curseforge-version:
+    required: false
+    default: ""
+    description: the version number
+  changelog-format:
     required: true
-    type: string
+    default: text
+    description: the formatting of the changelog [text, html, markdown] (only effective on curseforge)
+  modrinth-id:
+    required: false
+    default: ""
+    description: the project id for the mod
   modrinth-token:
-    required: true
-    type: string
+    required: false
+    default: ""
+    description: the token to authorize against the modrinth api
+  modrinth-name:
+    required: false
+    default: ""
+    description: the name of the version
+  modrinth-version:
+    required: false
+    default: ""
+    description: the version number
+  featured:
+    required: false
+    default: false
+    description: whether or not the file is marked as featured on modrinth (no used shown by modrinth?)
+  #loader specific inputs:
+  forge-path:
+    required: false
+    default: ""
+    description: if provided, this single file will be uploaded to curseforge and modrinth
+  forge-dependencies:
+    required: false
+    default: ""
+    description: forge specific dependencies that will be declared on curseforge and modrinth
+  fabric-path:
+    required: false
+    default: ""
+    description: if provided, this single file will be uploaded to curseforge and modrinth
+  fabric-dependencies:
+    required: false
+    default: ""
+    description: fabric specific dependencies that will be declared on curseforge and modrinth
+  neoforge-path:
+    required: false
+    default: ""
+    description: if provided, this single file will be uploaded to curseforge and modrinth
+  neoforge-dependencies:
+    required: false
+    default: ""
+    description: neoforge specific dependencies that will be declared on curseforge and modrinth
 
 runs:
-  using: "composite"
-  steps:
-    - name: publish NeoForge
-      if: ${{ inputs.neoforge == true || inputs.neoforge == 'true' }}
-      uses: Kir-Antipov/mc-publish@v3.3
-      with:
-        modrinth-id: ${{ inputs.modrinth-id }}
-        modrinth-featured: ${{ inputs.featured }}
-        modrinth-unfeature-mode: intersection
-        modrinth-token: ${{ inputs.modrinth-token }}
-        modrinth-name: ${{ inputs.mc-version }} - ${{ inputs.mod-version }} - NeoForge
-        modrinth-version: ${{ inputs.mc-version }}-${{ inputs.mod-version }}-NeoForge
-        curseforge-id: ${{ inputs.curseforge-id }}
-        curseforge-token: ${{ inputs.curseforge-token }}
-        curseforge-name: ""
-        curseforge-version: ""
-        version-type: release
-        loaders: neoforge
-        files: ./dist/*-neoforge-*jar
-        changelog: "${{ inputs.changelog }}"
-        game-versions: ${{ inputs.version-range }}
-        game-version-filter: releases
-
-    - name: publish Fabric
-      if: ${{ inputs.fabric == true || inputs.fabric == 'true' }}
-      uses: Kir-Antipov/mc-publish@v3.3
-      with:
-        modrinth-id: ${{ inputs.modrinth-id }}
-        modrinth-featured: ${{ inputs.featured }}
-        modrinth-unfeature-mode: intersection
-        modrinth-token: ${{ inputs.modrinth-token }}
-        modrinth-name: ${{ inputs.mc-version }} - ${{ inputs.mod-version }} - Fabric
-        modrinth-version: ${{ inputs.mc-version }}-${{ inputs.mod-version }}-Fabric
-        curseforge-id: ${{ inputs.curseforge-id }}
-        curseforge-token: ${{ inputs.curseforge-token }}
-        curseforge-name: ""
-        curseforge-version: ""
-        version-type: release
-        loaders: fabric
-        files: ./dist/*-fabric-*jar
-        changelog: "${{ inputs.changelog }}"
-        game-versions: ${{ inputs.version-range }}
-        dependencies: fabric-api(required)
-        game-version-filter: releases
-
-    - name: publish Forge
-      if: ${{ inputs.forge == true || inputs.forge == 'true' }}
-      uses: Kir-Antipov/mc-publish@v3.3
-      with:
-        modrinth-id: ${{ inputs.modrinth-id }}
-        modrinth-featured: ${{ inputs.featured }}
-        modrinth-unfeature-mode: intersection
-        modrinth-token: ${{ inputs.modrinth-token }}
-        modrinth-name: ${{ inputs.mc-version }} - ${{ inputs.mod-version }} - Forge
-        modrinth-version: ${{ inputs.mc-version }}-${{ inputs.mod-version }}-Forge
-        curseforge-id: ${{ inputs.curseforge-id }}
-        curseforge-token: ${{ inputs.curseforge-token }}
-        curseforge-name: ""
-        curseforge-version: ""
-        version-type: release
-        loaders: forge
-        files: ./dist/*-forge-*jar
-        changelog: "${{ inputs.changelog }}"
-        game-versions: ${{ inputs.version-range }}
-        game-version-filter: releases
+  using: "node22"
+  main: ./dist/index.js
