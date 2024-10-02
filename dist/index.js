@@ -28895,58 +28895,78 @@ async function main() {
         const [inputs, curseforgeToken, modrinthToken] = (0, inputs_1.readInputs)();
         const inputsCodeBlock = summary.makeCodeblock(JSON.stringify(inputs, null, "  "), "json");
         // get all possible versions from modrinth
-        const allVersions = await modrinth.getAllVersions(modrinthToken);
+        const allVersions = await modrinth.util.getAllVersions(modrinthToken);
         // filter all versions based on the provided versionRange
         const targetVersions = utils.filterTargetVersions(inputs.versionRange, allVersions);
         core.info(`Minecraft target versions: '${targetVersions.join(',')}'`);
         // map those versions to get the ids for curseforge
-        const curseforgeVersions = await curseforge.mapVersions(targetVersions);
+        const curseforgeVersions = await curseforge.util.mapVersions(targetVersions);
         core.info(`Curseforge specific versions (excluding the loader): '${curseforgeVersions.join(',')}'`);
         // foreach activated loader => upload to curseforge and modrinth
         const loaders = ["neoforge", "fabric", "forge"];
         for (const loader of loaders) {
             const namedLoader = utils.capitalize(loader);
             core.info(`[${namedLoader}] Checking if upload is requested.`);
-            if (inputs[loader].path.length >= 1) {
-                // check if the file exists
-                if (!fs.existsSync(inputs[loader].path)) {
-                    const path = fs.realpathSync(inputs[loader].path, { encoding: "utf-8" });
-                    core.warning(`The supplied file '${path}' could not be found. Skipping the upload!`, { title: `[${namedLoader}] Supplied file not found!` });
-                    continue;
+            if (inputs[loader].path.length < 1) {
+                core.info(`[${namedLoader}] No file supplied. Skipping the upload!`);
+                continue;
+            }
+            // check if the file exists
+            if (!fs.existsSync(inputs[loader].path)) {
+                const path = fs.realpathSync(inputs[loader].path, { encoding: "utf-8" });
+                core.warning(`The supplied file '${path}' could not be found. Skipping the upload!`, { title: `[${namedLoader}] Supplied file not found!` });
+                continue;
+            }
+            // when possible upload file to curseforge
+            if (`${inputs.curseforge.id}`.length >= 1 && curseforgeToken.length >= 1) {
+                core.startGroup(`[${namedLoader}] Upload to Curseforge`);
+                try {
+                    await curseforge.upload(inputs, loader, curseforgeVersions, curseforgeToken, namedLoader);
                 }
-                // when possible upload file to curseforge
-                if (`${inputs.curseforge.id}`.length >= 1 && curseforgeToken.length >= 1) {
-                    curseforge.upload(inputs, loader, curseforgeVersions, curseforgeToken);
+                catch (error) {
+                    let m = error instanceof Error ? error.message : JSON.stringify(error);
+                    core.error(m, { title: `[${namedLoader}] Upload to Curseforge failed!` });
                 }
-                else {
-                    core.info(`[${namedLoader}] No Curseforge token and project-id provided, not uploading to curseforge.com`);
-                }
-                // when possible upload file to modrinth
-                if (`${inputs.modrinth.id}`.length >= 1 && modrinthToken.length >= 1) {
-                    modrinth.upload(inputs, loader, targetVersions, modrinthToken);
-                }
-                else {
-                    core.info(`[${namedLoader}] No Modrinth token and project-id provided, not uploading to modrinth.com`);
-                }
-                if (inputs.summary === true) {
-                    // TODO write the summary
-                }
-                core.info(`[${namedLoader}] All uploads finished.`);
+                core.info(`[${namedLoader}] finished upload to curseforge.com`);
+                core.endGroup();
             }
             else {
-                core.info(`[${namedLoader}] No file supplied. Skipping the upload!`);
+                core.info(`[${namedLoader}] No Curseforge token and project-id provided, not uploading to curseforge.com`);
             }
+            // when possible upload file to modrinth
+            if (`${inputs.modrinth.id}`.length >= 1 && modrinthToken.length >= 1) {
+                core.startGroup(`[${namedLoader}] Upload to Modrinth`);
+                try {
+                    await modrinth.upload(inputs, loader, targetVersions, modrinthToken, namedLoader);
+                }
+                catch (error) {
+                    let m = error instanceof Error ? error.message : JSON.stringify(error);
+                    core.error(m, { title: `[${namedLoader}] Upload to Modrinth failed!` });
+                }
+                core.info(`[${namedLoader}] finished upload to modrinth.com`);
+                core.endGroup();
+            }
+            else {
+                core.info(`[${namedLoader}] No Modrinth token and project-id provided, not uploading to modrinth.com`);
+            }
+            // TODO write the summary
+            if (inputs.summary === true) {
+            }
+            core.info(`[${namedLoader}] All uploads finished.`);
         }
         core.info("All file uploads successfully finished");
     }
     catch (error) {
-        // Fail the workflow run if an error occurs
-        if (error instanceof Error) {
-            core.setFailed(error.message);
-        }
-        else {
-            core.setFailed(JSON.stringify(error));
-        }
+        handleError(error);
+    }
+}
+function handleError(error) {
+    // Fail the workflow run if an error occurs
+    if (error instanceof Error) {
+        core.setFailed(error.message);
+    }
+    else {
+        core.setFailed(JSON.stringify(error));
     }
 }
 main();
@@ -29061,6 +29081,59 @@ function loadLoaderInputs(loader) {
 
 /***/ }),
 
+/***/ 129:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.CURSEFORGE_API = void 0;
+exports.mapVersions = mapVersions;
+exports.transformDependency = transformDependency;
+const axios_1 = __importDefault(__nccwpck_require__(7269));
+exports.CURSEFORGE_API = "https://minecraft.curseforge.com/api";
+/** this does only return all release version (1.21.1 | 1.21 | ...) and no snapshots/betas/... */
+async function getAllVersions() {
+    const url = "https://api.curseforge.com/v1/minecraft/version";
+    // other urls, because
+    // https://minecraft.curseforge.com/api/game/dependencies not existant? but should be used according to curseforge-api-docs
+    // https://minecraft.curseforge.com/api/game/versions contains some duplicates with some IDs where I do not know which to choose ...
+    const response = await axios_1.default.get(url);
+    if (response.status !== 200) {
+        throw new Error(`Could not get versions from '${url}'`);
+    }
+    return response.data.data;
+}
+/** map the provided array of minecraft versions to curseforge specific version ids */
+async function mapVersions(targetVersions) {
+    const allVersions = await getAllVersions();
+    return allVersions
+        .filter(v => targetVersions.includes(v.versionString))
+        .map(v => v.gameVersionId);
+}
+/** map the provided DependencyType to the curseforge specific type */
+function transformDependency(dependency) {
+    if (dependency === "required") {
+        return "requiredDependency";
+    }
+    else if (dependency === "optional") {
+        return "optionalDependency";
+    }
+    else if (dependency === "incompatible") {
+        return "incompatible";
+    }
+    else if (dependency === "embedded") {
+        return "embeddedLibrary";
+    }
+    throw new Error(`'${dependency}' is not a valid dependency for curseforge.com. Pls report this error at 'https://github.com/tristankechlo/publish-mc-mod'`);
+}
+
+
+/***/ }),
+
 /***/ 5216:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
@@ -29093,13 +29166,13 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.IDS = void 0;
-exports.mapVersions = mapVersions;
+exports.IDS = exports.util = void 0;
 exports.upload = upload;
 const core = __importStar(__nccwpck_require__(7484));
-const utils = __importStar(__nccwpck_require__(4527));
 const axios_1 = __importDefault(__nccwpck_require__(7269));
 const fs = __importStar(__nccwpck_require__(9896));
+const cfutil = __importStar(__nccwpck_require__(129));
+exports.util = cfutil;
 // small runtime improvement, values are likely never going to change, so no need the fetch them from curseforge
 // WHY THE FUCK IS THE API SO COMPLICATED WITH ALL THOSE MEANINGLESS IDS
 exports.IDS = {
@@ -29109,56 +29182,31 @@ exports.IDS = {
     "client": 9638, // type id 75208
     "server": 9639, // type id 75208
 };
-const CURSEFORGE_API = "https://minecraft.curseforge.com/api";
-/** this does only return all release version (1.21.1 | 1.21 | ...) and no snapshots/betas/... */
-async function getAllVersions() {
-    const url = "https://api.curseforge.com/v1/minecraft/version";
-    // other urls, because
-    // https://minecraft.curseforge.com/api/game/dependencies not existant? but should be used according to curseforge-api-docs
-    // https://minecraft.curseforge.com/api/game/versions contains some duplicates with some IDs where I do not know which to choose ...
-    const response = await axios_1.default.get(url);
-    if (response.status !== 200) {
-        throw new Error(`Could not get versions from '${url}'`);
-    }
-    return response.data.data;
-}
-async function mapVersions(targetVersions) {
-    const allVersions = await getAllVersions();
-    return allVersions
-        .filter(v => targetVersions.includes(v.versionString))
-        .map(v => v.gameVersionId);
-}
-async function upload(inputs, loader, versions, token) {
-    const namedLoader = utils.capitalize(loader);
-    core.startGroup(`[${namedLoader}] Upload to Curseforge`);
+async function upload(inputs, loader, versions, token, namedLoader) {
     core.info(`[${namedLoader}] starting upload to curseforge.com`);
     const data = await createPostData(inputs, loader, versions);
     const formData = {
         metadata: data,
         file: fs.createReadStream(inputs[loader].path)
     };
-    const url = `${CURSEFORGE_API}/projects/${inputs.curseforge.id}{projectId}/upload-file`;
+    const url = `${cfutil.CURSEFORGE_API}/projects/${inputs.curseforge.id}{projectId}/upload-file`;
     if (inputs.dryrun === true) {
         core.info(`[${namedLoader}] option 'dryrun' active, not uploading to curseforge.com`);
-        // TODO write summary
-        core.endGroup();
+        // TODO write log messages
         return;
     }
     const response = await axios_1.default.postForm(url, formData, { headers: { 'X-Api-Token': token } });
     if (response.status !== 200) {
-        core.endGroup();
-        throw new Error(`[${namedLoader}] upload to curseforge.com failed with message: ${JSON.stringify(response.data)}`);
+        throw new Error(`upload to curseforge.com failed with message: ${JSON.stringify(response.data)}`);
     }
-    core.info(`[${namedLoader}] finished upload to curseforge.com`);
-    core.endGroup();
     return response.data;
 }
 async function createPostData(inputs, loader, versions) {
     const cfLoaderId = exports.IDS[loader];
     const dependencies = [];
     for (const dep of inputs[loader].dependencies) {
-        const slug = dep.id; // if this slug does not exist => user fault
-        const type = transformDependency(dep.dependency_type);
+        const slug = dep.id; // if this slug does not exist => user fault (user should make sure the slug is correct)
+        const type = cfutil.transformDependency(dep.dependency_type);
         dependencies.push({ slug, type });
     }
     const versionData = {
@@ -29173,20 +29221,41 @@ async function createPostData(inputs, loader, versions) {
     };
     return versionData;
 }
-function transformDependency(dependency) {
-    if (dependency === "required") {
-        return "requiredDependency";
+
+
+/***/ }),
+
+/***/ 2201:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.MODRINTH_API = void 0;
+exports.getAllVersions = getAllVersions;
+exports.getProjectId = getProjectId;
+const axios_1 = __importDefault(__nccwpck_require__(7269));
+exports.MODRINTH_API = "https://api.modrinth.com/v2";
+/** load all possible minecraft versions */
+async function getAllVersions(token) {
+    const url = exports.MODRINTH_API + "/version?cache=true";
+    const response = await axios_1.default.get(url, { headers: { Authorization: token } });
+    if (response.status !== 200) {
+        throw new Error(`Could not get version from '${url}'`);
     }
-    else if (dependency === "optional") {
-        return "optionalDependency";
+    return response.data;
+}
+/** get the project id from a give project slug */
+async function getProjectId(slug, token) {
+    const url = `${exports.MODRINTH_API}/project/${slug}?cache=true`;
+    const response = await axios_1.default.get(url, { headers: { Authorization: token } });
+    if (response.status !== 200) {
+        throw new Error(`Could not get project with id|slug '${slug}' from '${url}'`);
     }
-    else if (dependency === "incompatible") {
-        return "incompatible";
-    }
-    else if (dependency === "embedded") {
-        return "embeddedLibrary";
-    }
-    throw new Error(`'${dependency}' is not a valid dependency for curseforge.com. Pls report this error at 'https://github.com/tristankechlo/publish-mc-mod'`);
+    return response.data.id;
 }
 
 
@@ -29224,58 +29293,36 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.getAllVersions = getAllVersions;
+exports.util = void 0;
 exports.upload = upload;
 const core = __importStar(__nccwpck_require__(7484));
 const utils = __importStar(__nccwpck_require__(4527));
 const axios_1 = __importDefault(__nccwpck_require__(7269));
 const fs = __importStar(__nccwpck_require__(9896));
-const MODRINTH_API = "https://api.modrinth.com/v2";
+const mfutil = __importStar(__nccwpck_require__(2201));
+exports.util = mfutil;
 const FILE_ID = "primaryFile";
-async function getAllVersions(token) {
-    const url = MODRINTH_API + "/version?chache=true";
-    const response = await axios_1.default.get(url, { headers: { Authorization: token } });
-    if (response.status !== 200) {
-        throw new Error(`Could not get version from '${url}'`);
-    }
-    return response.data;
-}
-async function getProjectId(slug, token) {
-    const url = `${MODRINTH_API}/project/${slug}`;
-    const response = await axios_1.default.get(url, { headers: { Authorization: token } });
-    if (response.status !== 200) {
-        throw new Error(`Could not get project with id|slug '${slug}' from '${url}'`);
-    }
-    return response.data.id;
-}
-async function upload(inputs, loader, versions, token) {
-    const namedLoader = utils.capitalize(loader);
-    core.startGroup(`[${namedLoader}] Upload to Modrinth`);
+async function upload(inputs, loader, versions, token, namedLoader) {
     core.info(`[${namedLoader}] starting upload to modrinth.com`);
-    const data = await createPostData(inputs, loader, versions, token);
+    const data = await createPostData(inputs, loader, versions, token, namedLoader);
     const formData = { data: data };
     formData[FILE_ID] = fs.createReadStream(inputs[loader].path);
-    const url = MODRINTH_API + "/version";
+    const url = mfutil.MODRINTH_API + "/version";
     if (inputs.dryrun === true) {
         core.info(`[${namedLoader}] option 'dryrun' active, not uploading to modrinth.com`);
-        // TODO write summary
-        core.endGroup();
+        // TODO write log messages
         return;
     }
     const response = await axios_1.default.postForm(url, formData, { headers: { Authorization: token } });
     if (response.status !== 200) {
-        core.endGroup();
-        throw new Error(`[${namedLoader}] upload to modrinth.com failed with message: ${JSON.stringify(response.data)}`);
+        throw new Error(`upload to modrinth.com failed with message: ${JSON.stringify(response.data)}`);
     }
-    core.info(`[${namedLoader}] finished upload to modrinth.com`);
-    core.endGroup();
     return response.data;
 }
-async function createPostData(inputs, loader, versions, token) {
-    const namedLoader = utils.capitalize(loader);
+async function createPostData(inputs, loader, versions, token, namedLoader) {
     const dependencies = [];
     for (const dep of inputs[loader].dependencies) {
-        const id = await getProjectId(dep.id, token);
+        const id = await mfutil.getProjectId(dep.id, token);
         core.info(`[${namedLoader}] resolved dependency-id '${dep.id}' to project-id '${id}'`);
         dependencies.push({ project_id: id, dependency_type: dep.dependency_type });
     }

@@ -1,66 +1,41 @@
-import type { CreatableVersion, CreatableVersionResponse, ModrinthMcVersion, Project, VersionDependency } from "./types";
+import type { CreatableVersion, CreatableVersionResponse, VersionDependency } from "./types";
 import type { ActionInputs, Loader } from "../../types";
 import * as core from "@actions/core";
 import * as utils from "../../util";
 import axios from "axios";
 import * as fs from 'fs';
 
-const MODRINTH_API = "https://api.modrinth.com/v2";
+import * as mfutil from './modrinth-util';
+export { mfutil as util };
+
 const FILE_ID = "primaryFile";
 
-export async function getAllVersions(token: string): Promise<ModrinthMcVersion[]> {
-    const url = MODRINTH_API + "/version?chache=true"
-    const response = await axios.get<ModrinthMcVersion[]>(url, { headers: { Authorization: token } });
-    if (response.status !== 200) {
-        throw new Error(`Could not get version from '${url}'`);
-    }
-    return response.data;
-}
-
-async function getProjectId(slug: string, token: string): Promise<string> {
-    const url = `${MODRINTH_API}/project/${slug}`;
-    const response = await axios.get<Project>(url, { headers: { Authorization: token } });
-    if (response.status !== 200) {
-        throw new Error(`Could not get project with id|slug '${slug}' from '${url}'`);
-    }
-    return response.data.id;
-}
-
-export async function upload(inputs: ActionInputs, loader: Loader, versions: string[], token: string): Promise<CreatableVersionResponse | void> {
-    const namedLoader = utils.capitalize(loader);
-    core.startGroup(`[${namedLoader}] Upload to Modrinth`);
+export async function upload(inputs: ActionInputs, loader: Loader, versions: string[], token: string, namedLoader: string): Promise<CreatableVersionResponse | void> {
     core.info(`[${namedLoader}] starting upload to modrinth.com`);
 
-    const data = await createPostData(inputs, loader, versions, token);
+    const data = await createPostData(inputs, loader, versions, token, namedLoader);
     const formData: { [key: string]: any } = { data: data };
     formData[FILE_ID] = fs.createReadStream(inputs[loader].path);
 
-    const url = MODRINTH_API + "/version";
+    const url = mfutil.MODRINTH_API + "/version";
     if (inputs.dryrun === true) {
-        core.info(`[${namedLoader}] option 'dryrun' active, not uploading to modrinth.com`)
-        // TODO write summary
-        core.endGroup();
+        core.info(`[${namedLoader}] option 'dryrun' active, not uploading to modrinth.com`);
+        // TODO write log messages
         return;
     }
     const response = await axios.postForm<CreatableVersionResponse>(url, formData, { headers: { Authorization: token } })
 
     if (response.status !== 200) {
-        core.endGroup()
-        throw new Error(`[${namedLoader}] upload to modrinth.com failed with message: ${JSON.stringify(response.data)}`);
+        throw new Error(`upload to modrinth.com failed with message: ${JSON.stringify(response.data)}`);
     }
-
-    core.info(`[${namedLoader}] finished upload to modrinth.com`)
-    core.endGroup();
     return response.data;
 }
 
-async function createPostData(inputs: ActionInputs, loader: Loader, versions: string[], token: string): Promise<CreatableVersion> {
-
-    const namedLoader = utils.capitalize(loader);
+async function createPostData(inputs: ActionInputs, loader: Loader, versions: string[], token: string, namedLoader: string): Promise<CreatableVersion> {
     const dependencies: VersionDependency[] = [];
 
     for (const dep of inputs[loader].dependencies) {
-        const id = await getProjectId(dep.id, token);
+        const id = await mfutil.getProjectId(dep.id, token);
         core.info(`[${namedLoader}] resolved dependency-id '${dep.id}' to project-id '${id}'`)
         dependencies.push({ project_id: id, dependency_type: dep.dependency_type })
     }
