@@ -7,29 +7,37 @@ branding:
   color: 'green'
 
 inputs:
-  # general inputs
+# general inputs
   summary:
     required: false
-    default: false
+    default: true
     description: when set to true this action will create a summary inside your workflow
-  # minecraft specific inputs
-  minecraft-version:
+  dryrun:
+    required: false
+    default: false
+    description: when set to true the requests to the platform will not be executed
+# minecraft specific inputs
+  mod-id:
     required: true
-    description: the minecraft version of the build, used for publishing to curseforge and modrinth
+    description: th minecraft id of your mod
   mod-version:
     required: true
     description: the version of the mod, used for publishing to curseforge and modrinth
-  changelog:
+  minecraft-version:
     required: true
+    description: the minecraft version of the build, used for publishing to curseforge and modrinth
+  changelog:
+    required: false
     default: ""
-    description: changelog that is added while publishing to curseforge and modrinth
+    description: changelog that is added to the file while publishing to curseforge and modrinth
   version-range:
     required: true
     description: what minecraft versions does this build support, used for curseforge and modrinth
   version-type:
-    required: true
+    required: false
+    default: release
     description: the version type - alpha, beta, or release
-  # platform specific inputs
+# platform specific inputs
   curseforge-id:
     required: false
     default: ""
@@ -70,7 +78,7 @@ inputs:
     required: false
     default: false
     description: whether or not the file is marked as featured on modrinth (no used shown by modrinth?)
-  #loader specific inputs:
+#loader specific inputs:
   forge-path:
     required: false
     default: ""

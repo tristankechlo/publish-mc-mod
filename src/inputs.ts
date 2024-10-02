@@ -10,10 +10,12 @@ export function readInputs(): [ActionInputs, string, string] {
 
     // general inputs
     const summary = core.getBooleanInput("summary", { required: true });
+    const dryrun = core.getBooleanInput("dryrun", { required: true });
 
     // minecraft specific inputs
-    const minecraftVersion = core.getInput("minecraft-version", { required: true });
+    const modId = core.getInput("mod-id", { required: true });
     const modVersion = core.getInput("mod-version", { required: true });
+    const minecraftVersion = core.getInput("minecraft-version", { required: true });
     const changelog = core.getInput("changelog", { required: true });
     const versionRange = core.getInput("version-range", { required: true });
     const versionType = core.getInput("version-type", { required: true }).toLowerCase() as VersionType;
@@ -38,8 +40,8 @@ export function readInputs(): [ActionInputs, string, string] {
     const neoforge = loadLoaderInputs("neoforge");
 
     const inputs: ActionInputs = {
-        summary,
-        minecraftVersion, modVersion, changelog, versionRange, versionType: versionType as VersionType,
+        summary, dryrun,
+        modId, modVersion, minecraftVersion, changelog, versionRange, versionType,
         curseforge, changelogFormat, modrinth, featured,
         forge, fabric, neoforge,
     };

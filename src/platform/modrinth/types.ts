@@ -14,14 +14,12 @@ export interface CreatableVersion {
     primary_file: string; // The multipart field name of the primary file
 }
 
-export interface CreatableVersionAddon {
+export type CreatableVersionResponse = CreatableVersion & {
     author_id: string;
     date_published: string;
     downloads: number;
     files: any[];
-}
-
-export type CreatableVersionResponse = CreatableVersion | CreatableVersionAddon;
+};
 
 export interface VersionDependency {
     project_id: string;

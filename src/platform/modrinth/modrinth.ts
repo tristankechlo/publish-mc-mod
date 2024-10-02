@@ -26,8 +26,7 @@ async function getProjectId(slug: string, token: string): Promise<string> {
     return response.data.id;
 }
 
-export async function upload(inputs: ActionInputs, loader: Loader, versions: string[], token: string): Promise<CreatableVersionResponse> {
-    const url = MODRINTH_API + "/version";
+export async function upload(inputs: ActionInputs, loader: Loader, versions: string[], token: string): Promise<CreatableVersionResponse | void> {
     const namedLoader = utils.capitalize(loader);
     core.startGroup(`[${namedLoader}] Upload to Modrinth`);
     core.info(`[${namedLoader}] starting upload to modrinth.com`);
@@ -36,6 +35,13 @@ export async function upload(inputs: ActionInputs, loader: Loader, versions: str
     const formData: { [key: string]: any } = { data: data };
     formData[FILE_ID] = fs.createReadStream(inputs[loader].path);
 
+    const url = MODRINTH_API + "/version";
+    if (inputs.dryrun === true) {
+        core.info(`[${namedLoader}] option 'dryrun' active, not uploading to modrinth.com`)
+        // TODO write summary
+        core.endGroup();
+        return;
+    }
     const response = await axios.postForm<CreatableVersionResponse>(url, formData, { headers: { Authorization: token } })
 
     if (response.status !== 200) {

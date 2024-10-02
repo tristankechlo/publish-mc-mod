@@ -1,9 +1,11 @@
 
 export interface ActionInputs {
     summary: boolean;
+    dryrun: boolean;
 
-    minecraftVersion: string;
+    modId: string;
     modVersion: string;
+    minecraftVersion: string;
     changelog: string;
     versionRange: string;
     versionType: VersionType;

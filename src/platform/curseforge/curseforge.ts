@@ -6,7 +6,7 @@ import axios from "axios";
 import * as fs from 'fs';
 
 // small runtime improvement, values are likely never going to change, so no need the fetch them from curseforge
-// WHY THE FUCK IS THE API SO COMPLICATED WITH ALL THOSE IDS
+// WHY THE FUCK IS THE API SO COMPLICATED WITH ALL THOSE MEANINGLESS IDS
 export const IDS: { [key: string]: number } = {
     "forge": 7498, // type id 68441
     "fabric": 7499, // type id 68441
@@ -20,13 +20,13 @@ const CURSEFORGE_API = "https://minecraft.curseforge.com/api";
 /** this does only return all release version (1.21.1 | 1.21 | ...) and no snapshots/betas/... */
 async function getAllVersions(): Promise<GameVersion[]> {
     const url = "https://api.curseforge.com/v1/minecraft/version";
-    // other urls
-    // https://minecraft.curseforge.com/api/game/dependencies not existant? but should be used according to curseforge-docs
-    // https://minecraft.curseforge.com/api/game/versions contains some duplicates with some IDs where I do not know what the fuck they are for
+    // other urls, because
+    // https://minecraft.curseforge.com/api/game/dependencies not existant? but should be used according to curseforge-api-docs
+    // https://minecraft.curseforge.com/api/game/versions contains some duplicates with some IDs where I do not know which to choose ...
 
     const response = await axios.get<{ data: GameVersion[] }>(url);
     if (response.status !== 200) {
-        throw new Error(`Could not get version from '${url}'`);
+        throw new Error(`Could not get versions from '${url}'`);
     }
     return response.data.data;
 }
@@ -38,9 +38,7 @@ export async function mapVersions(targetVersions: string[]): Promise<number[]> {
         .map(v => v.gameVersionId);
 }
 
-export async function upload(inputs: ActionInputs, loader: Loader, versions: number[], token: string): Promise<CreatableVersionResponse> {
-    const url = `${CURSEFORGE_API}/projects/${inputs.curseforge.id}{projectId}/upload-file`;
-
+export async function upload(inputs: ActionInputs, loader: Loader, versions: number[], token: string): Promise<CreatableVersionResponse | void> {
     const namedLoader = utils.capitalize(loader);
     core.startGroup(`[${namedLoader}] Upload to Curseforge`);
     core.info(`[${namedLoader}] starting upload to curseforge.com`);
@@ -51,6 +49,13 @@ export async function upload(inputs: ActionInputs, loader: Loader, versions: num
         file: fs.createReadStream(inputs[loader].path)
     };
 
+    const url = `${CURSEFORGE_API}/projects/${inputs.curseforge.id}{projectId}/upload-file`;
+    if (inputs.dryrun === true) {
+        core.info(`[${namedLoader}] option 'dryrun' active, not uploading to curseforge.com`)
+        // TODO write summary
+        core.endGroup();
+        return;
+    }
     const response = await axios.postForm<CreatableVersionResponse>(url, formData, { headers: { 'X-Api-Token': token } });
 
     if (response.status !== 200) {
@@ -97,5 +102,5 @@ function transformDependency(dependency: DependencyType): CurseforgeDependencyTy
     } else if (dependency === "embedded") {
         return "embeddedLibrary";
     }
-    return "SOMETHING WENT TERRIBLY WRONG" as CurseforgeDependencyType;
+    throw new Error(`'${dependency}' is not a valid dependency for curseforge.com. Pls report this error at 'https://github.com/tristankechlo/publish-mc-mod'`);
 }
