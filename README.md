@@ -25,3 +25,6 @@ Expected file locations:
     modrinth-token: ${{ secrets.MODRINTH_TOKEN }} # required
 
 ```
+
+> [!NOTE]
+> Built on top of the publish action by Kir-Antipov ([https://github.com/Kir-Antipov/mc-publish](https://github.com/Kir-Antipov/mc-publish))
