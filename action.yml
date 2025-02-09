@@ -48,6 +48,11 @@ inputs:
   modrinth-token:
     required: true
     type: string
+  modrinth-featured:
+    required: false
+    default: true
+    type: boolean
+    description: whether the mod should be featured on modrinth
   neoforge-glob:
     required: false
     default: "./neoforge/build/libs/*-neoforge-!(*-dev|*-sources|*-javadoc).jar"
@@ -87,7 +92,7 @@ runs:
       uses: Kir-Antipov/mc-publish@v3.3
       with:
         modrinth-id: ${{ inputs.modrinth-id }}
-        modrinth-featured: true
+        modrinth-featured: ${{ inputs.modrinth-featured }}
         modrinth-unfeature-mode: intersection
         modrinth-token: ${{ inputs.modrinth-token }}
         modrinth-name: ${{ inputs.mc-version }} - ${{ inputs.mod-version }} - NeoForge
@@ -108,7 +113,7 @@ runs:
       uses: Kir-Antipov/mc-publish@v3.3
       with:
         modrinth-id: ${{ inputs.modrinth-id }}
-        modrinth-featured: true
+        modrinth-featured: ${{ inputs.modrinth-featured }}
         modrinth-unfeature-mode: intersection
         modrinth-token: ${{ inputs.modrinth-token }}
         modrinth-name: ${{ inputs.mc-version }} - ${{ inputs.mod-version }} - Fabric
@@ -130,7 +135,7 @@ runs:
       uses: Kir-Antipov/mc-publish@v3.3
       with:
         modrinth-id: ${{ inputs.modrinth-id }}
-        modrinth-featured: true
+        modrinth-featured: ${{ inputs.modrinth-featured }}
         modrinth-unfeature-mode: intersection
         modrinth-token: ${{ inputs.modrinth-token }}
         modrinth-name: ${{ inputs.mc-version }} - ${{ inputs.mod-version }} - Forge
