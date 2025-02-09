@@ -67,6 +67,10 @@ inputs:
 runs:
   using: "composite"
   steps:
+    - name: fail if invalid version-type
+      if: ${{ inputs.version-type != 'release' && inputs.version-type != 'beta' && inputs.version-type != 'alpha' }}
+      run: echo "Invalid version-type, must be release, beta or alpha" && exit 1
+
     - name: determine active loaders
       id: setup
       shell: python {0}
