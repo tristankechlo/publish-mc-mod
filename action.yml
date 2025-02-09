@@ -28,46 +28,62 @@ inputs:
     type: string
     default: ""
     description: changelog that is added while publishing to curseforge and modrinth, supports markdown
-  featured:
+  loaders:
     required: false
-    type: boolean
-    default: true
-    description: whether or not the file is marked as featured on modrinth, defaults to true
-  forge:
-    required: false
-    type: boolean
-    default: true
-    description: whether or not the build has forge files, defaults to true
-  fabric:
-    required: false
-    type: boolean
-    default: true
-    description: whether or not the build has fabric files, defaults to true
-  neoforge:
-    required: false
-    type: boolean
-    default: true
-    description: whether or not the build has neoforge files, defaults to true
+    default: "forge,fabric,neoforge"
+    type: string
+    description: what loaders does this build support, used for publishing to curseforge and modrinth
   version-range:
     required: true
     type: string
     description: what minecraft versions does this build support, used for curseforge and modrinth
+  version-type:
+    required: false
+    default: "release"
+    type: string
+    description: what type of version is this, used for publishing to curseforge and modrinth
   curseforge-token:
     required: true
     type: string
   modrinth-token:
     required: true
     type: string
+  neoforge-glob:
+    required: false
+    default: "./neoforge/build/libs/*-neoforge-!(*-dev|*-sources|*-javadoc).jar"
+    type: string
+    description: glob pattern for the neoforge jar file
+  fabric-glob:
+    required: false
+    default: "./fabric/build/libs/*-fabric-!(*-dev|*-sources|*-javadoc).jar"
+    type: string
+    description: glob pattern for the fabric jar file
+  forge-glob:
+    required: false
+    default: "./forge/build/libs/*-forge-!(*-dev|*-sources|*-javadoc).jar"
+    type: string
+    description: glob pattern for the forge jar file
 
 runs:
   using: "composite"
   steps:
+    - name: determine active loaders
+      id: setup
+      shell: python {0}
+      run: |
+        import os
+        loaders = [loader.strip() for loader in ${{ toJSON(inputs.loaders) }}.lower().split(",")]
+        output = {loader: "yes" if loader in loaders else "no" for loader in ["forge", "fabric", "neoforge"]}
+        with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+          for key, value in output.items():
+            print(f'{key}={value}', file=f)
+
     - name: publish NeoForge
-      if: ${{ inputs.neoforge == true || inputs.neoforge == 'true' }}
+      if: ${{ steps.setup.outputs.neoforge == 'yes' }}
       uses: Kir-Antipov/mc-publish@v3.3
       with:
         modrinth-id: ${{ inputs.modrinth-id }}
-        modrinth-featured: ${{ inputs.featured }}
+        modrinth-featured: true
         modrinth-unfeature-mode: intersection
         modrinth-token: ${{ inputs.modrinth-token }}
         modrinth-name: ${{ inputs.mc-version }} - ${{ inputs.mod-version }} - NeoForge
@@ -76,19 +92,19 @@ runs:
         curseforge-token: ${{ inputs.curseforge-token }}
         curseforge-name: ""
         curseforge-version: ""
-        version-type: release
+        version-type: ${{ inputs.version-type }}
         loaders: neoforge
-        files: ./dist/*-neoforge-*jar
+        files: ${{ inputs.neoforge-glob }}
         changelog: "${{ inputs.changelog }}"
         game-versions: ${{ inputs.version-range }}
         game-version-filter: releases
 
     - name: publish Fabric
-      if: ${{ inputs.fabric == true || inputs.fabric == 'true' }}
+      if: ${{ steps.setup.outputs.fabric == 'yes' }}
       uses: Kir-Antipov/mc-publish@v3.3
       with:
         modrinth-id: ${{ inputs.modrinth-id }}
-        modrinth-featured: ${{ inputs.featured }}
+        modrinth-featured: true
         modrinth-unfeature-mode: intersection
         modrinth-token: ${{ inputs.modrinth-token }}
         modrinth-name: ${{ inputs.mc-version }} - ${{ inputs.mod-version }} - Fabric
@@ -97,20 +113,20 @@ runs:
         curseforge-token: ${{ inputs.curseforge-token }}
         curseforge-name: ""
         curseforge-version: ""
-        version-type: release
+        version-type: ${{ inputs.version-type }}
         loaders: fabric
-        files: ./dist/*-fabric-*jar
+        files: ${{ inputs.fabric-glob }}
         changelog: "${{ inputs.changelog }}"
         game-versions: ${{ inputs.version-range }}
         dependencies: fabric-api(required)
         game-version-filter: releases
 
     - name: publish Forge
-      if: ${{ inputs.forge == true || inputs.forge == 'true' }}
+      if: ${{ steps.setup.outputs.forge == 'yes' }}
       uses: Kir-Antipov/mc-publish@v3.3
       with:
         modrinth-id: ${{ inputs.modrinth-id }}
-        modrinth-featured: ${{ inputs.featured }}
+        modrinth-featured: true
         modrinth-unfeature-mode: intersection
         modrinth-token: ${{ inputs.modrinth-token }}
         modrinth-name: ${{ inputs.mc-version }} - ${{ inputs.mod-version }} - Forge
@@ -119,9 +135,9 @@ runs:
         curseforge-token: ${{ inputs.curseforge-token }}
         curseforge-name: ""
         curseforge-version: ""
-        version-type: release
+        version-type: ${{ inputs.version-type }}
         loaders: forge
-        files: ./dist/*-forge-*jar
+        files: ${{ inputs.forge-glob }}
         changelog: "${{ inputs.changelog }}"
         game-versions: ${{ inputs.version-range }}
         game-version-filter: releases
