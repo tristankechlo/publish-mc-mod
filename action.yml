@@ -97,7 +97,7 @@ runs:
         files: ${{ inputs.neoforge-glob }}
         changelog: "${{ inputs.changelog }}"
         game-versions: ${{ inputs.version-range }}
-        game-version-filter: releases
+        game-version-filter: ${{ inputs.version-type }}s
 
     - name: publish Fabric
       if: ${{ steps.setup.outputs.fabric == 'yes' }}
@@ -119,7 +119,7 @@ runs:
         changelog: "${{ inputs.changelog }}"
         game-versions: ${{ inputs.version-range }}
         dependencies: fabric-api(required)
-        game-version-filter: releases
+        game-version-filter: ${{ inputs.version-type }}s
 
     - name: publish Forge
       if: ${{ steps.setup.outputs.forge == 'yes' }}
@@ -140,4 +140,4 @@ runs:
         files: ${{ inputs.forge-glob }}
         changelog: "${{ inputs.changelog }}"
         game-versions: ${{ inputs.version-range }}
-        game-version-filter: releases
+        game-version-filter: ${{ inputs.version-type }}s
