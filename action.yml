@@ -74,6 +74,7 @@ runs:
   steps:
     - name: fail if invalid version-type
       if: ${{ inputs.version-type != 'release' && inputs.version-type != 'beta' && inputs.version-type != 'alpha' }}
+      shell: bash
       run: echo "Invalid version-type, must be release, beta or alpha" && exit 1
 
     - name: determine active loaders
